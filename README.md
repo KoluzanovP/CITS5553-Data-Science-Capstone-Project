@@ -1,106 +1,146 @@
-# CITS5553 Data Science Capstone Project (GROUP 8)
+# CITS5553 Data Science Capstone Project (Group 8)
 
-# AI-Driven Formulation Development for Pharmaceutical Applications
-This repository contains the final project for the CITS5553 unit, focusing on leveraging artificial intelligence to optimize pharmaceutical formulation development. This project explores how large language models can be fine-tuned to predict optimal excipient combinations and formulation outcomes, moving beyond traditional trial-and-error methods.
+## AI-Driven Formulation Development for Pharmaceutical Applications
+
+The final project for the CITS5553 unit. It looks at how a large language model can be
+adapted to predict excipient combinations and formulation outcomes, instead of the usual
+trial-and-error approach.
 
 ![User Interface](./gemma3-1b-pharma.png)
 
+## Core components
 
-## Core Components
+* Data sources. External domain-specific text, mainly DailyMed, used for training and for
+  the knowledge base.
+* Foundation model. `google/gemma-3-1b-it` is the base LLM, adapted to the pharmaceutical
+  domain.
+* Method:
+  - Fine-tuning with instruction-response pairs, to teach domain reasoning and
+    instruction-following.
+  - Retrieval-Augmented Generation (RAG) over a local vector database, which gives the
+    model a structured knowledge base of domain documents and improves its predictions.
+* Tasks the model is trained for:
+  - selecting excipients
+  - recommending candidate formulations
+  - predicting formulation outcomes
 
-* **Data Sources**: The project leverages external, domain-specific text data, primarily **DailyMed**, for specialized training and knowledge base construction.
-* **Foundation Model**: The system utilizes the **google/gemma-3-1b-it** model as the foundational Large Language Model (LLM) for subsequent adaptation to the pharmaceutical domain.
-* **Methodology**
-  - **Fine-tuning**: The model was specialized using **Instruction-Response Pair Fine-tuning** to instill domain-specific reasoning and precise instruction-following capabilities.
-  - **Retrieval-Augmented Generation (RAG)**: The system incorporates a RAG pipeline using a local vector database to provide the model with a structured knowledge base from domain-specific documents, enhancing its predictive accuracy.
-* **Key Tasks**: The model is trained to perform three critical functions:
-  - Optimization of excipient selection
-  - Recommendation of candidate formulations
-  - Prediction of formulation outcomes
+## Key feature workflow
 
-
-## Key Feature Workflow
 ![Key Feature Workflow](./slide4.drawio.png)
 
+### File structure
 
-### File Structure
+* `clm/`: unsupervised fine-tuning (causal language modeling). This path did not work out,
+  and is kept for the lessons learned.
+    * `clm_training/`: scripts and log files used for CLM training.
+    * `data_prep/`: code for downloading, sampling and preprocessing PubMed and DailyMed
+      XML data.
+    * `evaluation/`: quantitative and qualitative evaluation of the CLM-trained model.
+    * `clm_training_samples.tar.gz`: archive with 2,466 sample files for CLM training.
+    * `gemma3-1b-it-clm-trained.tar.gz`: archive with the latest checkpoint from the CLM
+      training run.
 
-The project repository is organized into the following key directories:
+* `data/`: the DailyMed dataset used for fine-tuning.
+    * `full_database.csv`: CSV extracted from DailyMed with product, dosage form, route,
+      active ingredient, active strength and inactive ingredients.
+    * `train.txt`, `val.txt`, `test.txt`: training, validation and test sets generated from
+      `full_database.csv` as instruction-response pairs for supervised fine-tuning.
 
-* **clm/**: **Unsupervised Fine-tuning (Causal Language Modeling) - Failure and Lessons Learned**
-    * `clm_training/`: Scripts and associated log files used for CLM training.
-    * `data_prep/`: Code for downloading, sampling, and preprocessing PubMed and DailyMed XML data.
-    * `evaluation/`: Code for conducting quantitative and qualitative evaluation specific to the CLM-trained model.
-    * `clm_training_samples.tar.gz`: Archive containing 2,466 sample files for CLM training.
-    * `gemma3-1b-it-clm-trained.tar.gz`: Archive containing the latest checkpoint from the CLM training run.
+* `docs/`: project proposal, final report and documentation, including the user guide.
 
-* **data/**: DailyMed Dataset for Fine-tuning
-    * `full_database.csv`: A comprehensive CSV file extracted from the DailyMed Dataset, including critical pharmaceutical information such as Product, Dosage Form, Route, Active Ingredient, Active Strength, and Inactive Ingredients.
-    * `train.txt`, `val.txt`, `test.txt`: The training, validation, and testing datasets generated from full_database.csv in the format of instruction-response pairs for supervised fine-tuning.
+* `evaluation/`: a model evaluation script. It evaluates the base, fine-tuned and
+  RAG-enhanced models on BLEU, ROUGE, cosine similarity, precision, recall, top-K accuracy
+  and perplexity, covering both linguistic coherence and semantic performance.
 
-* **docs/**: Contains the project proposal, the final project report, and documentation including the user guide.
+* `fine-tuning/`: the Jupyter notebook used for instruction-response fine-tuning of the
+  base model.
 
-* **evaluation/**: Contains a script for comprehensive model evaluation/ Evaluates base, fine-tuned, and RAG-enhanced models using various metrics (BLEU, ROUGE, Cosine Similarity, Precision, Recall, Top-K Accuracy, and Perplexity) to assess both linguistic coherence and semantic performance.
+* `langflow/`: the LangFlow + RAG workflow.
+    * `gemma3-1b-pharma with RAG.json`: exported JSON defining the LangFlow pipeline.
 
-* **fine-tuning/**: Contains a jupyter notebook file used for performing the instruction-response fine-tuning of the base model.
+* `ollama/`: deployment artifacts.
+    * `gemma3-1b-pharma_q8_0.Modelfile`: the Modelfile used to package and run the
+      fine-tuned model (`gemma3-1b-pharma`) on the Ollama inference server.
 
-* **langflow/**: **LangFlow with RAG Workflow**
-    * `gemma3-1b-pharma with RAG.json`: The exported JSON file defining the LangFlow pipeline.
+* `vector_DB/`: a Jupyter notebook for building the Chroma vector database, plus the
+  retriever code used for RAG.
 
-* **ollama/**: **Deployment Artifacts for LLM Interaction**
-    * `gemma3-1b-pharma_q8_0.Modelfile`: The Modelfile used to package and run the final fine-tuned model (`gemma3-1b-pharma`) on the Ollama inference server.
-
-* **vector_DB/**: Contains a jupyter notebook file for generating the Chroma vector database and the retriever code used for Retrieval-Augmented Generation (RAG).
-
-    *Note: The actual implementation pipeline is configured within [LangFlow](./langflow/README.md).*
-
+    Note: the actual implementation pipeline is configured in
+    [LangFlow](./langflow/README.md).
 
 ## Deployment
-This project required large-scale data preparation and GPU training. With support from the UWA HPC team, each group member received a Kaya account to share data/models and run jobs on the cluster. Clients can also access Kaya, so we deployed the final system there. Because future hosting may change, we document the current setup and a portable path to redeploy elsewhere.
 
-### Current Deployment on Kaya
-We trained our model on Kaya GPU nodes, which are limited to max 3 consecutive days per allocation. To provide a stable endpoint for clients, the inference workflow (LangFlow + RAG + Ollama) is hosted on the Kaya login node. This ensures uninterrupted web service but means slightly lower throughput/latency vs. a dedicated GPU node.
-Figure 3 illustrates the system deployed entirely within the UWA Kaya HPC environment, where:
-* GPU nodes are allocated for large-scale training and fine-tuning tasks.
+The project needed large-scale data preparation and GPU training. With support from the UWA
+HPC team, each group member received a Kaya account to share data and models and to run
+jobs on the cluster. Clients can access Kaya as well, so the final system was deployed
+there. Since hosting may change later, both the current setup and a portable path to
+redeploy elsewhere are documented below.
+
+### Current deployment on Kaya
+
+The model was trained on Kaya GPU nodes, which allow at most 3 consecutive days per
+allocation. To give clients a stable endpoint, the inference workflow (LangFlow + RAG +
+Ollama) is hosted on the Kaya login node. Web service is then uninterrupted, at the cost of
+somewhat lower throughput and higher latency than a dedicated GPU node would give.
+
+Figure 3 shows the system deployed inside the UWA Kaya HPC environment:
+
+* GPU nodes are allocated for training and fine-tuning.
 * LangFlow + Ollama handle inference and user interaction on the login node.
-* Chroma DB stores vector embeddings for RAG.
-* Clients access LangFlow Playground Web UI securely through SSH tunneling.
+* Chroma DB stores the vector embeddings for RAG.
+* Clients reach the LangFlow Playground web UI through SSH tunneling.
 
 ![System Architecture](./slide3.drawio.png)
 
-After running the following ssh tunneling command from local machines, users can access the current version of our model using a web browser:
-* Terminal: ssh -N -f -L 7860:localhost:7860 userid@kaya01.hpc.uwa.edu.au
-* Web browser: http://localhost:7860/playground/3bd2bd98-14be-412a-995e-6b7008e546cf
+After running the SSH tunneling command below from a local machine, the current version of
+the model is reachable in a browser:
 
-### Future Deployment on Another Machine
-With the model deployed on Kaya, clients will not need to install it directly on their local machines. However, after the three-month project period allocated by the UWA HPC team ends, it will no longer be available. Therefore, the client will need to either obtain approval to extend the server access period, operate a separate server infrastructure, or set up installations on individual local machines. Because the local standalone deployment is the simplest to reproduce, we document step-by-step guides for deploying our model.
+* Terminal: `ssh -N -f -L 7860:localhost:7860 userid@kaya01.hpc.uwa.edu.au`
+* Web browser: `http://localhost:7860/playground/3bd2bd98-14be-412a-995e-6b7008e546cf`
+
+### Future deployment on another machine
+
+With the model on Kaya, clients do not need to install anything locally. However, once the
+three-month project period allocated by the UWA HPC team ends, Kaya access goes away. The
+client will then need to extend the server access period, run separate server
+infrastructure, or install on individual machines. The local standalone deployment is the
+simplest to reproduce, so it is documented step by step here.
 
 #### 1) System requirements
+
 * Linux/macOS (Windows WSL2 also works)
-* 16–32 GB RAM (more is better)
+* 16-32 GB RAM, more is better
 * Optional NVIDIA GPU + CUDA for faster Ollama inference
 
 #### 2) Install prerequisites
-* Python 3.10 – 3.13
+
+* Python 3.10 to 3.13
 * [miniconda](https://www.anaconda.com/docs/getting-started/miniconda/install)
 * [LangFlow](./langflow/README.md)
 * [Ollama](./ollama/README.md)
-* Embedding model for RAG: ollama pull nomic-embed-text
+* Embedding model for RAG: `ollama pull nomic-embed-text`
 
 #### 3) Bring project artifacts
+
 * Fine-tuned model (.gguf) and [Modelfile](./ollama/gemma3-1b-pharma_q8_0.Modelfile)
-* [LangFlow workflow file (.json)](./langflow/gemma3-1b-pharma with RAG.json): Import via LangFlow UI: Projects → Upload a flow. Update any paths inside components (Directory loader path, ChromaDB persist directory, etc.) to match the new machine.
-* Vector DB: Packaged Chroma DB archive (e.g., [ChromaDB.tar.gz](./langflow/ChromaDB.tar.gz)). Unpack to the path used by your ChromaDB component’s persist directory. If starting from scratch, simply run the ingestion flow to rebuild.
-* [Data files](./data/): For rebuilding .chromadb from scratch, three dataset files for train, validation and test are required.
+* [LangFlow workflow file (.json)](./langflow/gemma3-1b-pharma with RAG.json). Import it
+  via the LangFlow UI: Projects -> Upload a flow. Update any paths inside the components
+  (directory loader path, ChromaDB persist directory and so on) to match the new machine.
+* Vector DB: the packaged Chroma DB archive, for example
+  [ChromaDB.tar.gz](./langflow/ChromaDB.tar.gz). Unpack it to the path used by your
+  ChromaDB component's persist directory. If starting from scratch, run the ingestion flow
+  to rebuild it.
+* [Data files](./data/): rebuilding .chromadb from scratch needs the three dataset files
+  for train, validation and test.
 
+## Team members
 
-## Team Members
 * sarahp16: Sarah Pinelli (23419054)
 * nishajha629: Nisha Jha (23945457)
 * KoluzanovFE: Philipp Koluzanov (24069852)
 * grail80: Sungbae Ji (24619726)
 * shreyapatel2224: Shreya Kaushal Patel (24690749)
 
-
 ## License
-This project is for academic use only and is not licensed for commercial use. All rights are reserved.
+
+Academic use only, not licensed for commercial use. All rights reserved.
